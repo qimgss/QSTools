@@ -1,0 +1,14 @@
+[package]
+name = "extratool"
+version = "0.1.0"
+edition = "2021"
+authors = ["qimgss <qimgss@126.com>"]
+description = "A CLI tool for Android block device operations"
+license = "Apache-2.0"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive", "env"] }
+anyhow = "1.0"
+thiserror = "1.0"
+nix = "0.28"
+libc = "0.2"
