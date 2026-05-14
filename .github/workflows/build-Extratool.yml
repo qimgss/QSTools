@@ -1,0 +1,161 @@
+name: Build for Android AArch64
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  TARGET: aarch64-linux-android
+  BINARY_NAME: extratool
+  ANDROID_VERSION: 24  # Android API 级别
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # 如果在 main 分支上运行，则检出 extratool 分支
+        ref: ${{ github.ref == 'refs/heads/main' && 'extratool' || github.ref }}
+        fetch-depth: 0
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ env.TARGET }}
+    
+    - name: Install Android NDK
+      run: |
+        # 安装必要的工具
+        sudo apt-get update
+        sudo apt-get install -y wget unzip
+        
+        # 下载 Android NDK
+        wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+        unzip -q android-ndk-r25c-linux.zip
+        
+        # 设置环境变量
+        echo "ANDROID_NDK_HOME=$(pwd)/android-ndk-r25c" >> $GITHUB_ENV
+        echo "$(pwd)/android-ndk-r25c" >> $GITHUB_PATH
+        
+        # 验证 NDK 安装
+        echo "NDK installed at: $(pwd)/android-ndk-r25c"
+    
+    - name: Setup Rust Android target
+      run: |
+        rustup target add ${{ env.TARGET }}
+        
+        # 验证工具链
+        rustc --print target-list | grep android || echo "Android targets not listed"
+    
+    - name: Create Android linker configuration
+      run: |
+        # 创建 cargo 配置文件
+        mkdir -p .cargo
+        
+        cat > .cargo/config.toml << EOF
+        [target.${{ env.TARGET }}]
+        ar = "${{ env.ANDROID_NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        linker = "${{ env.ANDROID_NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_VERSION }}-clang"
+        
+        [build]
+        target = "${{ env.TARGET }}"
+        EOF
+        
+        echo "Cargo config created:"
+        cat .cargo/config.toml
+    
+    - name: Build for Android
+      run: |
+        # 设置环境变量
+        export ANDROID_NDK_HOME="${{ env.ANDROID_NDK_HOME }}"
+        export PATH="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+        
+        # 验证链接器存在
+        if [ -f "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_VERSION }}-clang" ]; then
+          echo "Android linker found"
+        else
+          echo "Android linker not found!"
+          ls "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/" | grep android
+        fi
+        
+        # 显示编译信息
+        echo "Building for target: ${{ env.TARGET }}"
+        echo "Binary name: ${{ env.BINARY_NAME }}"
+        echo "Cargo version: $(cargo --version)"
+        echo "Rust version: $(rustc --version)"
+        
+        # 编译项目
+        echo "Starting build..."
+        cargo build --release --verbose
+        
+        # 检查输出文件
+        echo "Checking for output files..."
+        if [ -f "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}" ]; then
+          echo "✅ Success! Binary created: target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}"
+          ls -lh "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}"
+          
+          # 检查文件类型
+          file "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}"
+          
+          # 如果需要，创建平台特定的副本
+          cp "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}" \
+             "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}-android-aarch64"
+        else
+          echo "❌ Binary not found at expected location"
+          echo "Looking in target directory:"
+          find target/ -name "${{ env.BINARY_NAME }}" -type f 2>/dev/null || echo "No files found"
+          echo "Listing release directory:"
+          ls -la "target/${{ env.TARGET }}/release/" 2>/dev/null || echo "Directory not found"
+        fi
+    
+    - name: Upload Android binary
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BINARY_NAME }}-android-aarch64
+        path: |
+          target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}
+          target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}-android-aarch64
+        if-no-files-found: error
+        retention-days: 7
+    
+    - name: Create release info
+      if: success()
+      run: |
+        # 创建构建信息文件
+        cat > build-info.txt << EOF
+        Build Information:
+        ==================
+        Binary: ${{ env.BINARY_NAME }}
+        Target: ${{ env.TARGET }}
+        Platform: Android AArch64
+        Android API: ${{ env.ANDROID_VERSION }}
+        Git Branch: ${{ github.ref }}
+        Commit: ${{ github.sha }}
+        Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        File Information:
+        =================
+        EOF
+        
+        if [ -f "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}" ]; then
+          file "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}" >> build-info.txt
+          echo "" >> build-info.txt
+          ls -lh "target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}" >> build-info.txt
+        fi
+        
+        cat build-info.txt
+    
+    - name: Upload build info
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-info
+        path: build-info.txt
+        retention-days: 7
