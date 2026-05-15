@@ -14,6 +14,7 @@ Version="20260509"
 
 #命令变量
 NowTime=$(date "+%Y年%m月%d日%H时%M分%S秒%3N毫秒")
+NowTime_NT=$(date "+%Y%m%d%H%M%S")
 CheckManufacturer=$(getprop ro.product.manufacturer)
 CheckModel=$(getprop ro.product.model)
 CheckVersion=$(getprop ro.build.version.release)
@@ -49,12 +50,36 @@ Display "$1" >> ${Logdir}/$2
 }
 
 ExportLog(){
-Display ""
+ReadEnters "" "请输入导出报告的地址：" "ExportLogPath"
+if [ -z ${ExportLogPath} ]; then
+    Display "未输入报告导出地址，默认导出至：${Logdir}"
+    ExportLogPath=${Logdir}
+echo "Model: ${CheckModel}
+Manufacturer: ${CheckManufacturer}
+Kernel: $(cat /proc/version | awk '{print $3}')
+Build time: $(uname -v)
+SDK: $(getprop ro.build.version.sdk)
+Architecture: $(uname -m)
+CPU: $(getprop ro.hardware)-$(getprop ro.board.platform)
+Script path: $0
+Script version: ${Version}" >>${Logdir}/baseinfo.log
+zcat /proc/config.gz >> ${Logdir}/deconfig
+cp -af $0 ${Logdir}/script.sh
+zip -r ${ExportLogPath}/Report_${NowTime_NT}.zip ${Logdir}/
 }
 
 CreateWorkdir(){
-mkdir ${Workdir} ${Logdir} ${Initdir} >> /dev/null 2<&1
+mkdir ${Workdir} ${Logdir} ${Initdir} >> /dev/null 2>&1
 chmod -R 777 ${Workdir}
+}
+
+Start(){
+Display "${NowTime} -> 脚本开始运行" >> ${Logdir}/script.log
+}
+
+ExitScript(){
+Display "${NowTime} -> 脚本结束运行" >> ${Logdir}/script.log
+exit >> /dev/null 2>&1
 }
 
 #下载函数
@@ -134,9 +159,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-12-5.10"
 Download SkipSSL "${KMI}/android12-5.10_kernelsu.ko" "${Filedir}/12-5.10_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 12-5.10 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 12-5.10 success" "script.log"
 else
-    OutputLog "${NowTime} -> download 12-5.10 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 12-5.10 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -144,9 +169,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.10"
 Download SkipSSL "${KMI}/android13-5.10_kernelsu.ko" "${Filedir}/13-5.10_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 13-5.10 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 13-5.10 success" "script.log"
 else
-    OutputLog "${NowTime} -> download 13-5.10 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 13-5.10 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -154,9 +179,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.15"
 Download SkipSSL "${KMI}/android13-5.15_kernelsu.ko" "${Filedir}/13-5.15_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 13-5.15 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 13-5.15 success" "script.log"
 else
-    OutputLog "${NowTime} -> download13-5.15 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download13-5.15 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -164,9 +189,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-5.15"
 Download SkipSSL "${KMI}/android14-5.15_kernelsu.ko" "${Filedir}/14-5.15_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 14-5.15 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 14-5.15 success" "script.log"
 else
-    OutputLog "${NowTime} -> download 14-5.15 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 14-5.15 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -174,9 +199,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-6.1"
 Download SkipSSL "${KMI}/android14-6.1_kernelsu.ko" "${Filedir}/14-6.1_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 14-6.1 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 14-6.1 success" "script.log"
 else
-    OutputLog "${NowTime} -> download 14-6.1 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 14-6.1 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -184,9 +209,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-15-6.6"
 Download SkipSSL "${KMI}/android15-6.6_kernelsu.ko" "${Filedir}/15-6.6_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 15-6.6 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 15-6.6 success" "script.log"
 else
-    OutputLog "${NowTime} -> download15-6.6 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download15-6.6 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -194,9 +219,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-16-6.12"
 Download SkipSSL "${KMI}/android16-6.12_kernelsu.ko" "${Filedir}/16-6.12_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 16-6.12 success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 16-6.12 success" "script.log"
 else
-    OutputLog "${NowTime} -> download 16-6.12 failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download 16-6.12 failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -204,9 +229,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KernelSU"
 Download SkipSSL "${KMI}/KernelSU_v3.2.4_32457-release.apk" "/sdcard/ksu.apk" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download ksu manager success" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download ksu manager success" "script.log"
 else
-    OutputLog "${NowTime} -> download ksu manager failed" "Pull_KMI.log"
+    OutputLog "${NowTime} -> download ksu manager failed" "script.log"
     error_count=$((error_count + 1))
 fi
 
@@ -221,9 +246,9 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载blkops"
 Download SkipSSL "${RawURL}/binary/blkops" "/sdcard/libblkops.so" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download blkops binary success" "Pull_Binary.log"
+    OutputLog "${NowTime} -> download blkops binary success" "script.log"
 else
-    OutputLog "${NowTime} -> download blkops binary failed" "Pull_Binary.log"
+    OutputLog "${NowTime} -> download blkops binary failed" "script.log"
     error_count=$((error_count + 1))
 fi
 cp "/sdcard/libblkops.so" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops.so
@@ -271,10 +296,10 @@ if [ "${Version}" -lt "${Remote_Version}" ]; then
 
     case $UpdateInput in
         Y|y)
-        Download "SkipSSL" "https://raw.githubusercontent.com/Kdufse/ABNToolbox/main/ABNToolbox.sh" ./QSTools.sh
+        Download "SkipSSL" "${RawURL}/main/QSTools.sh" ./QSTools.sh
         Display "${ORANGE}更新完成${NC}"
         if [ $? -eq 0 ]; then
-            chmod 777 "./ABNToolbox.sh"
+            chmod 777 "./QSTools.sh"
             sleep 1
             clear
             su -c "sh ./QSTools.sh"
@@ -380,11 +405,12 @@ case $MainInputs in
     2) PatchKSUImage ;;
     3) CfgHMA ;;
     4) ExportLog ;;
-    5) exit 1;;
+    5) ExitScript ;;
     *) return 1 ;;
 esac
 }
 CreateWorkdir
+Start
 if [ -d ${Initdir} ]; then
     Display ""
     Update
@@ -395,3 +421,4 @@ else
     Update
     MainMenu
 fi
+ExitScript
