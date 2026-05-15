@@ -1,16 +1,16 @@
-name: Build for Android AArch64
+name: Build blkops for Android AArch64
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main,blkops ]
   pull_request:
-    branches: [ main ]
+    branches: [ main,blkops ]
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
   TARGET: aarch64-linux-android
-  BINARY_NAME: extratool
+  BINARY_NAME: blkops
   ANDROID_VERSION: 24  # Android API 级别
 
 jobs:
@@ -21,8 +21,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        # 如果在 main 分支上运行，则检出 extratool 分支
-        ref: ${{ github.ref == 'refs/heads/main' && 'extratool' || github.ref }}
+        ref: ${{ github.ref == 'refs/heads/main' && 'blkops' || github.ref }}
         fetch-depth: 0
     
     - name: Install Rust toolchain

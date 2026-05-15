@@ -4,7 +4,7 @@ use std::process::Command;
 
 #[derive(Parser)]
 #[command(
-    name = "extratool",
+    name = "blkops",
     author,
     version,
     about = "Android block device operation utility",
@@ -47,23 +47,23 @@ impl Cli {
 }
 
 pub fn print_help() {
-    println!("extratool - Android Block Device Utility");
+    println!("blkops - Android Block Device Utility");
     println!();
     println!("Usage:");
-    println!("  extratool -s <partition>              Search for a partition and show its device path");
-    println!("  extratool -f <image> <partition>      Flash image to partition");
-    println!("  extratool -d <partition> <image>      Dump partition to image file");
-    println!("  extratool -h, --help                  Show this help message");
+    println!("  blkops -s <partition>              Search for a partition and show its device path");
+    println!("  blkops -f <image> <partition>      Flash image to partition");
+    println!("  blkops -d <partition> <image>      Dump partition to image file");
+    println!("  blkops -h, --help                  Show this help message");
     println!();
     println!("Options:");
     println!("  -b, --block-size SIZE                Block size for dump/flash (default: 4M)");
     println!("  -c, --count BLOCKS                   Number of blocks to copy (for dump)");
     println!();
     println!("Examples:");
-    println!("  extratool -s boot                    Find boot partition device path");
-    println!("  extratool -f boot.img boot           Flash boot.img to boot partition");
-    println!("  extratool -d boot boot.img           Dump boot partition to boot.img");
-    println!("  extratool -d boot boot.img -b 1M -c 1024  Dump 1MB (1024 blocks) of boot partition");
+    println!("  blkops -s boot                    Find boot partition device path");
+    println!("  blkops -f boot.img boot           Flash boot.img to boot partition");
+    println!("  blkops -d boot boot.img           Dump boot partition to boot.img");
+    println!("  blkops -d boot boot.img -b 1M -c 1024  Dump 1MB (1024 blocks) of boot partition");
     println!();
     println!("The tool automatically detects the current slot suffix (getprop ro.boot.slot_suffix)");
 }
