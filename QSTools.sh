@@ -8,13 +8,9 @@ KMIRemote="https://github.com/tiann/KernelSU"
 KMI="${KMIRemote}/releases/latest/download"
 Workdir=/data/QSTools
 Logdir=${Workdir}/logs
-Initdir=${Workdir}/init
-DLLdir=${Workdir}/Dynamic/Link/Libraries
-KMIdir="${Initdir}/KMI"
+Initdir=${Workdir}/Files
+Filedir=${Initdir}
 Version="20260509"
-KernelVersion=$(cat /proc/version)
-BuildAndroidVersion=$([[ $KernelVersion =~ android([0-9]+) ]] && echo "${BASH_REMATCH[1]}" || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
-
 
 #命令变量
 NowTime=$(date "+%Y年%m月%d日%H时%M分%S秒%3N毫秒")
@@ -23,6 +19,8 @@ CheckModel=$(getprop ro.product.model)
 CheckVersion=$(getprop ro.build.version.release)
 CheckKernel=$(cat /proc/version | awk -F '-' '{print $1}' | awk '{print $3}' | awk -F '.' '{print $1"."$2}')
 CheckSlot=$(getprop ro.boot.slot_suffix)
+KernelVersion=$(cat /proc/version)
+BuildAndroidVersion=$([[ $KernelVersion =~ android([0-9]+) ]] && echo "${BASH_REMATCH[1]}" || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
 
 #颜色变量
 RED='\033[0;31m'
@@ -59,21 +57,6 @@ mkdir ${Workdir} ${Logdir} ${Initdir} >> /dev/null 2<&1
 chmod -R 777 ${Workdir}
 }
 
-FindBlock(){
-local BlockEnters=$1
-local BlockPath=$(find /dev/block/ -name "$BlockEnters" -type l -exec readlink {} \; 2>/dev/null | sort -u)
-Display "${BlockPath}"
-}
-
-ExtractImage(){
-#寻找镜像文件的实际所在位置
-local BlockEnters=$1
-local ImageOutdir=$2
-FindBlock "$BlockEnters"
-[ -z $ImageOutdir ] && local ImageOutdir="$Workdir/$Image"
-dd if="${BlockPath}" of="${ImageOutdir}" bs=4M status=none && OutputLog "${NowTime} ->extract ${Image} success" "ExtractImage.log" || OutputLog "${NowTime} -> extract ${Image} failed" "ExtractImage.log"
-}
-
 #下载函数
 Download(){
 #标准的可输出日志的下载命令：
@@ -82,11 +65,12 @@ Download(){
     local SkipSSL=$1
     local URL=$2
     local Output=$3
+    local Functions=""
     if [ "$SkipSSL" = "SkipSSL" ]; then
-        curl --progress-bar -L -k -o "$Output" "$URL"
-    else
-        curl --progress-bar -L -o "$Output" "$URL"
+        local Functions='-k'
     fi
+curl --progress-bar -L $Fucntions -o "$Output" "$URL"
+
 }
 
 Init_Libraries(){
@@ -145,12 +129,10 @@ current_task=0
 error_count=0
 
 
-mkdir ${KMIdir} >> /dev/null 2>&1
-
-# 任务1: 下载 android12-5.10_kernelsu.ko
+mkdir ${Filedir} >> /dev/null 2>&1
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-12-5.10"
-Download SkipSSL "${KMI}/android12-5.10_kernelsu.ko" "${KMIdir}/12-5.10_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android12-5.10_kernelsu.ko" "${Filedir}/12-5.10_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 12-5.10 success" "Pull_KMI.log"
 else
@@ -158,10 +140,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务2: 下载 android13-5.10_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.10"
-Download SkipSSL "${KMI}/android13-5.10_kernelsu.ko" "${KMIdir}/13-5.10_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android13-5.10_kernelsu.ko" "${Filedir}/13-5.10_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 13-5.10 success" "Pull_KMI.log"
 else
@@ -169,10 +150,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务3: 下载 android13-5.15_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.15"
-Download SkipSSL "${KMI}/android13-5.15_kernelsu.ko" "${KMIdir}/13-5.15_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android13-5.15_kernelsu.ko" "${Filedir}/13-5.15_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 13-5.15 success" "Pull_KMI.log"
 else
@@ -180,10 +160,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务4: 下载 android14-5.15_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-5.15"
-Download SkipSSL "${KMI}/android14-5.15_kernelsu.ko" "${KMIdir}/14-5.15_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android14-5.15_kernelsu.ko" "${Filedir}/14-5.15_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 14-5.15 success" "Pull_KMI.log"
 else
@@ -191,10 +170,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务5: 下载 android14-6.1_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-6.1"
-Download SkipSSL "${KMI}/android14-6.1_kernelsu.ko" "${KMIdir}/14-6.1_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android14-6.1_kernelsu.ko" "${Filedir}/14-6.1_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 14-6.1 success" "Pull_KMI.log"
 else
@@ -202,10 +180,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务6: 下载 android15-6.6_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-15-6.6"
-Download SkipSSL "${KMI}/android15-6.6_kernelsu.ko" "${KMIdir}/15-6.6_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android15-6.6_kernelsu.ko" "${Filedir}/15-6.6_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 15-6.6 success" "Pull_KMI.log"
 else
@@ -213,10 +190,9 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务7: 下载 android16-6.12_kernelsu.ko
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-16-6.12"
-Download SkipSSL "${KMI}/android16-6.12_kernelsu.ko" "${KMIdir}/16-6.12_ksu.ko" >> /dev/null 2>&1
+Download SkipSSL "${KMI}/android16-6.12_kernelsu.ko" "${Filedir}/16-6.12_ksu.ko" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download 16-6.12 success" "Pull_KMI.log"
 else
@@ -224,7 +200,6 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务8: 下载 APK文件
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KernelSU"
 Download SkipSSL "${KMI}/KernelSU_v3.2.4_32457-release.apk" "/sdcard/ksu.apk" >> /dev/null 2>&1
@@ -235,17 +210,24 @@ else
     error_count=$((error_count + 1))
 fi
 
-# 任务9: 移动APK文件
 current_task=$((current_task + 1))
-show_progress $current_task $total_tasks "移动APK文件"
-mv "/sdcard/ksu.apk" "${KMIdir}/" 2>/dev/null
+show_progress $current_task $total_tasks "移动并解压APK"
+cp "/sdcard/ksu.apk" "${Filedir}/" 2>/dev/null
+unzip -j "${Filedir}/ksu.apk" "lib/arm64-v8a/libksud.so" -d ${Filedir}/ >> /dev/null 2>&1 && mv ${Filedir}/libksud.so ${Filedir}/ksud 2>/dev/null
+rm -rf ${Filedir}/ksu.apk 2>/dev/null
+chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
-# 任务10: 解压和设置权限
 current_task=$((current_task + 1))
-show_progress $current_task $total_tasks "解压并设置权限"
-unzip -j "${KMIdir}/ksu.apk" "lib/arm64-v8a/libksud.so" -d ${KMIdir}/ >> /dev/null 2>&1 && mv ${KMIdir}/libksud.so ${KMIdir}/ksud 2>/dev/null
-rm -rf ${KMIdir}/ksu.apk 2>/dev/null
-chmod -R 777 ${KMIdir} >> /dev/null 2>&1
+show_progress $current_task $total_tasks "下载blkops"
+Download SkipSSL "https://github.com/qimgss/QSTools/releases/download/blkops-1.0/blkops" "/sdcard/libblkops.so" >> /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    OutputLog "${NowTime} -> download blkops binary success" "Pull_Binary.log"
+else
+    OutputLog "${NowTime} -> download blkops binary failed" "Pull_Binary.log"
+    error_count=$((error_count + 1))
+fi
+cp "/sdcard/libblkops.so" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops.so
+chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 # 显示最终结果
 printf "\033[1;1H"
@@ -330,25 +312,43 @@ else
 fi
 }
 
-#HideRootEnvironment(){}
+HideRootEnvironment(){
+ADBdir="/data/adb"
+ConfigureZygiskNext(){
+Display "2" >> $ADBdir/zygisksu/denylist_enforce   #||排除列表策略                  仅还原挂载|
+Display "1" >> $ADBdir/zygisksu/memory_type      #|使用匿名内存                         开启|
+Display "1" >> $ADBdir/zygisksu/linker               #|使用 Zygisk Next 链接器            开启|
+}
+mkdir "${Workdir}/Modules"
+Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" && OutputLog "${NowTime} -> download StartInstall.sh success" "InstallModule.log" || OutputLog "${NowTime} -> download StartInstall.sh failed" "InstallModule.log"
+Download SkipSSL "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download ZygiskNext success" "InstallModule.log" || OutputLog "${NowTime} -> download ZygiskNext failed" "InstallModule.log"
+Download SkipSSL "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download LSPosed success" "InstallModule.log" || OutputLog "${NowTime} -> download LSPosed failed" "InstallModule.log"
+if su -v | grep -qwi "kernelsu"; then
+    Download SkipSSL "${RawURL}/Framework/Modules/SUSFS.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download SUSFS success" "InstallModule.log" || OutputLog "${NowTime} -> download SUSFS failed" "InstallModule.log"
+else
+    Download SkipSSL "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download TrickyStore success" "InstallModule.log" || OutputLog "${NowTime} -> download TrickyStore failed" "InstallModule.log"
+fi
+su -c "sh ${Workdir}/Modules/StartInstall.sh"
+ConfigureZygiskNext
+}
 
 PatchKSUImage(){
 clear
 Display "${YELLOW}找到的KMI文件：${CYAN}"
-find ${KMIdir}/*.ko -type f -exec basename {} \;
+find ${Filedir}/*.ko -type f -exec basename {} \;
 Display "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
 Display "输入方法：内核安卓版本+内核版本，如16-6.12"
 Display "留空则退出脚本"
 ReadEnters "" "请输入需要的KMI：" "KMIEnters"
-cd ${KMIdir}
+cd ${Filedir}
 ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
 local isInitboot=$(FindBlock init_boot${CheckSlot})
 if [ -z $ImageEnters ]; then
     if [ -z $isInitboot ]; then
-        ExtractImage "boot${CheckSlot}" "./Image.img"
+        ${Workdir}/blkops --dump "boot" "./Image.img"
         ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
     else
-        ExtractImage "init_boot${CheckSot}" "./Image img"
+        ${Workdir}/blkops --dump "boot" "./Image.img"
         ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
     fi
 else
@@ -379,7 +379,7 @@ case $MainInputs in
     1) HideRootEnvironment ;;
     2) PatchKSUImage ;;
     3) CfgHMA ;;
-    4) ReportBugs ;;
+    4) ExportLog ;;
     5) exit 1;;
     *) return 1 ;;
 esac
@@ -388,6 +388,7 @@ CreateWorkdir
 if [ -d ${Initdir} ]; then
     Display ""
     Update
+    clear
     MainMenu
 else
     Init_Libraries
