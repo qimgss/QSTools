@@ -1,4 +1,4 @@
-#!/system/bin/sh
+#!/system/bin/bash
 clear
 #========================================
 #全局变量
@@ -20,7 +20,7 @@ CheckVersion=$(getprop ro.build.version.release)
 CheckKernel=$(cat /proc/version | awk -F '-' '{print $1}' | awk '{print $3}' | awk -F '.' '{print $1"."$2}')
 CheckSlot=$(getprop ro.boot.slot_suffix)
 KernelVersion=$(cat /proc/version)
-BuildAndroidVersion=$([[ $KernelVersion =~ android([0-9]+) ]] && echo "${BASH_REMATCH[1]}" || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
+BuildAndroidVersion=$(echo "$KernelVersion" | grep -o 'android[0-9]\+' | grep -o '[0-9]\+' || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
 
 #颜色变量
 RED='\033[0;31m'
@@ -219,7 +219,7 @@ chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载blkops"
-Download SkipSSL "https://github.com/qimgss/QSTools/releases/download/blkops-1.0/blkops" "/sdcard/libblkops.so" >> /dev/null 2>&1
+Download SkipSSL "${RawURL}/binary/blkops" "/sdcard/libblkops.so" >> /dev/null 2>&1
 if [ $? -eq 0 ]; then
     OutputLog "${NowTime} -> download blkops binary success" "Pull_Binary.log"
 else
@@ -323,8 +323,8 @@ mkdir "${Workdir}/Modules"
 Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" && OutputLog "${NowTime} -> download StartInstall.sh success" "InstallModule.log" || OutputLog "${NowTime} -> download StartInstall.sh failed" "InstallModule.log"
 Download SkipSSL "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download ZygiskNext success" "InstallModule.log" || OutputLog "${NowTime} -> download ZygiskNext failed" "InstallModule.log"
 Download SkipSSL "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download LSPosed success" "InstallModule.log" || OutputLog "${NowTime} -> download LSPosed failed" "InstallModule.log"
-if su -v | grep -qwi "kernelsu"; then
-    Download SkipSSL "${RawURL}/Framework/Modules/SUSFS.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download SUSFS success" "InstallModule.log" || OutputLog "${NowTime} -> download SUSFS failed" "InstallModule.log"
+if zcat /proc/config.gz | grep -wi CONFIG_KSU_SUSFS; then
+    Download SkipSSL "https://github.com/sidex15/susfs4ksu-module/releases/latest/download/ksu_module_susfs_1.5.2+.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download SUSFS success" "InstallModule.log" || OutputLog "${NowTime} -> download SUSFS failed" "InstallModule.log"
 else
     Download SkipSSL "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download TrickyStore success" "InstallModule.log" || OutputLog "${NowTime} -> download TrickyStore failed" "InstallModule.log"
 fi
@@ -342,13 +342,13 @@ Display "留空则退出脚本"
 ReadEnters "" "请输入需要的KMI：" "KMIEnters"
 cd ${Filedir}
 ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
-local isInitboot=$(FindBlock init_boot${CheckSlot})
+local isInitboot=$(${Workdir}/blkops -s init_boot)
 if [ -z $ImageEnters ]; then
-    if [ -z $isInitboot ]; then
+    if $isInitboot | grep -qwi "Partition not found"; then
         ${Workdir}/blkops --dump "boot" "./Image.img"
         ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
     else
-        ${Workdir}/blkops --dump "boot" "./Image.img"
+        ${Workdir}/blkops --dump "init_boot" "./Image.img"
         ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
     fi
 else
