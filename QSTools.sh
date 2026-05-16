@@ -396,16 +396,14 @@ Display "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/i
 Display "${YELLOW}
 1.隐藏Root环境        |
 2.修补KSU镜像         |
-3.配置隐藏应用列表    |
-4.导出日志            |
-5.退出脚本            |"
+3.导出日志            |
+4.退出脚本            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
     1) HideRootEnvironment ;;
     2) PatchKSUImage ;;
-    3) CfgHMA ;;
-    4) ExportLog ;;
-    5) ExitScript ;;
+    3) ExportLog ;;
+    4) ExitScript ;;
     *) return 1 ;;
 esac
 }
