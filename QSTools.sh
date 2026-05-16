@@ -54,6 +54,7 @@ ReadEnters "" "请输入导出报告的地址：" "ExportLogPath"
 if [ -z ${ExportLogPath} ]; then
     Display "未输入报告导出地址，默认导出至：${Logdir}"
     ExportLogPath=${Logdir}
+fi
 echo "Model: ${CheckModel}
 Manufacturer: ${CheckManufacturer}
 Kernel: $(cat /proc/version | awk '{print $3}')
