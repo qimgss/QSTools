@@ -35,24 +35,24 @@ PINK='\033[0;95m'
 NOCOLOR='\033[0m'
 
 #显示函数
-Display(){
+Print_Text(){ # 显示文字
 echo -e "$1"
 }
 
-DisplayMDT(){
+MDT_Print_Text(){ # 强制显示文字
 cat <<EOF
 $1
 EOF
 }
 
 OutputLog(){
-Display "$1" >> ${Logdir}/$2
+Print_Text "$1" >> ${Logdir}/$2
 }
 
 ExportLog(){
 ReadEnters "" "请输入导出报告的地址：" "ExportLogPath"
 if [ -z ${ExportLogPath} ]; then
-    Display "未输入报告导出地址，默认导出至：${Logdir}"
+    Print_Text "未输入报告导出地址，默认导出至：${Logdir}"
     ExportLogPath=${Logdir}
 fi
 echo "Model: ${CheckModel}
@@ -75,11 +75,11 @@ chmod -R 777 ${Workdir}
 }
 
 Start(){
-Display "${NowTime} -> 脚本开始运行" >> ${Logdir}/script.log
+Print_Text "${NowTime} -> 脚本开始运行" >> ${Logdir}/script.log
 }
 
 ExitScript(){
-Display "${NowTime} -> 脚本结束运行" >> ${Logdir}/script.log
+Print_Text "${NowTime} -> 脚本结束运行" >> ${Logdir}/script.log
 exit >> /dev/null 2>&1
 }
 
@@ -255,6 +255,18 @@ fi
 cp "/sdcard/libblkops.so" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops.so
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
+current_task=$((current_task + 1))
+show_progress $current_task $total_tasks "下载magiskboot"
+Download SkipSSL "${RawURL}/binary/magiskboot" "/sdcard/magiskboot" >> /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    OutputLog "${NowTime} -> download magiskboot binary success" "script.log"
+else
+    OutputLog "${NowTime} -> download magiskboot binary failed" "script.log"
+    error_count=$((error_count + 1))
+fi
+cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/libblkops.so
+chmod -R 777 ${Filedir} >> /dev/null 2>&1
+
 # 显示最终结果
 printf "\033[1;1H"
 clear_to_end
@@ -273,13 +285,13 @@ ReadEnters(){
     local Title=$1
     local Title2=$2
     local Reads=$3
-    Display "${Title}"
+    Print_Text "${Title}"
     while true; do
-        Display "${ORANGE}${Title2}${NOCOLOR}"
+        Print_Text "${ORANGE}${Title2}${NOCOLOR}"
     sleep 0.025
         read $Reads
         if [ -z "$Reads" ]; then
-            Display "输入不能为空，请重新输入"
+            Print_Text "输入不能为空，请重新输入"
     sleep 0.025
         else
             break
@@ -298,14 +310,14 @@ if [ "${Version}" -lt "${Remote_Version}" ]; then
     case $UpdateInput in
         Y|y)
         Download "SkipSSL" "${RawURL}/main/QSTools.sh" ./QSTools.sh
-        Display "${ORANGE}更新完成${NC}"
+        Print_Text "${ORANGE}更新完成${NC}"
         if [ $? -eq 0 ]; then
             chmod 777 "./QSTools.sh"
             sleep 1
             clear
             su -c "sh ./QSTools.sh"
         else
-            Display "错误：.更新新版本 QSTools 失败！"
+            Print_Text "错误：.更新新版本 QSTools 失败！"
         fi
         ;;
         N|n|*)
@@ -313,13 +325,13 @@ if [ "${Version}" -lt "${Remote_Version}" ]; then
         ;;
     esac
 else
-    Display "当前为最新版本！"
+    Print_Text "当前为最新版本！"
     sleep 1
 fi
 }
 
 DeviceInfo(){
-Display "${PINK}品牌：${ORANGE}${CheckManufacturer}${NOCOLOR}
+Print_Text "${PINK}品牌：${ORANGE}${CheckManufacturer}${NOCOLOR}
 ${PINK}机型：${YELLOW}${CheckModel}${NOCOLOR}
 ${PINK}内核版本：${CYAN}${CheckKernel}${NOCOLOR}
 ${PINK}安卓版本：${GREEN}${CheckVersion}${NOCOLOR}"
@@ -330,8 +342,8 @@ if [ -d ${Initdir} ]; then
     Update
     MainMenu
 else
-    Display "初始化库文件中，请稍等..."
-    Display "时长因网络环境而不同，请耐心稍等，如有需要可开启VPN"
+    Print_Text "初始化库文件中，请稍等..."
+    Print_Text "时长因网络环境而不同，请耐心稍等，如有需要可开启VPN"
     Init_Libraries
     Update
     MainMenu
@@ -341,9 +353,9 @@ fi
 HideRootEnvironment(){
 ADBdir="/data/adb"
 ConfigureZygiskNext(){
-Display "2" >> $ADBdir/zygisksu/denylist_enforce   #||排除列表策略                  仅还原挂载|
-Display "1" >> $ADBdir/zygisksu/memory_type      #|使用匿名内存                         开启|
-Display "1" >> $ADBdir/zygisksu/linker               #|使用 Zygisk Next 链接器            开启|
+Print_Text "2" >> $ADBdir/zygisksu/denylist_enforce   #||排除列表策略                  仅还原挂载|
+Print_Text "1" >> $ADBdir/zygisksu/memory_type      #|使用匿名内存                         开启|
+Print_Text "1" >> $ADBdir/zygisksu/linker               #|使用 Zygisk Next 链接器            开启|
 }
 mkdir "${Workdir}/Modules"
 Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" && OutputLog "${NowTime} -> download StartInstall.sh success" "InstallModule.log" || OutputLog "${NowTime} -> download StartInstall.sh failed" "InstallModule.log"
@@ -358,43 +370,56 @@ su -c "sh ${Workdir}/Modules/StartInstall.sh"
 ConfigureZygiskNext
 }
 
+KSU_Supported_Check(){
+kver=${CheckKernel}
+if [[ $(printf "%d%02d" $(echo "$kver" | cut -d'-' -f1 | tr '.' ' ')) -lt 5010 ]]; then
+    echo "kernel < 5.10"
+fi
+
+}
+
 PatchKSUImage(){
 clear
-Display "${YELLOW}找到的KMI文件：${CYAN}"
+magiskboot=${Workdir}/magiskboot
+blkops=${Workdir}/blkops
+Print_Text "${YELLOW}找到的KMI文件：${CYAN}"
 find ${Filedir}/*.ko -type f -exec basename {} \;
-Display "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
-Display "输入方法：内核安卓版本+内核版本，如16-6.12"
-Display "留空则退出脚本"
+Print_Text "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
+Print_Text "输入方法：内核安卓版本+内核版本，如16-6.12"
+Print_Text "留空则退出脚本"
 ReadEnters "" "请输入需要的KMI：" "KMIEnters"
 cd ${Filedir}
 ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
-local isInitboot=$(${Workdir}/blkops -s init_boot)
+isInitboot=$(${Workdir}/blkops -s -p init_boot)
 if [ -z $ImageEnters ]; then
     if $isInitboot | grep -qwi "Partition not found"; then
         ${Workdir}/blkops --dump "boot" "./Image.img"
-        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
+        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+        $blkops --write ./Image.img boot
     else
         ${Workdir}/blkops --dump "init_boot" "./Image.img"
-        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
+        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+        $blkops --write ./Image.img init_boot
     fi
 else
     mv $ImageEnters ./Image.img
-    ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot /data/adb/ksu/bin/magiskboot
+    ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
 fi
+
 }
 
 MainMenu(){
-Display "${CYAN}========================================${YELLOW}"
-DisplayMDT '   ___  ____ _____           _     
+Print_Text "${CYAN}========================================${YELLOW}"
+MDT_Print_Text '   ___  ____ _____           _     
   / _ \/ ___|_   _|__   ___ | |___ 
  | | | \___ \ | |/ _ \ / _ \| / __|
  | |_| |___) || | (_) | (_) | \__ \
   \__\_\____/ |_|\___/ \___/|_|___/
                                     '
-Display "${CYAN}========================================${NOCOLOR}"
+Print_Text "${CYAN}========================================${NOCOLOR}"
 DeviceInfo
-Display "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
-Display "${YELLOW}
+Print_Text "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
+Print_Text "${YELLOW}
 1.隐藏Root环境        |
 2.修补KSU镜像         |
 3.导出日志            |
@@ -408,10 +433,12 @@ case $MainInputs in
     *) return 1 ;;
 esac
 }
+
 CreateWorkdir
 Start
+
 if [ -d ${Initdir} ]; then
-    Display ""
+    Print_Text ""
     Update
     clear
     MainMenu
@@ -421,3 +448,4 @@ else
     MainMenu
 fi
 ExitScript
+
