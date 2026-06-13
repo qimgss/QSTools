@@ -6,6 +6,8 @@ RepositoryURL=https://github.com/qimgss/QSTools
 RawURL="https://raw.githubusercontent.com/qimgss/QSTools"
 KMIRemote="https://github.com/tiann/KernelSU"
 KMI="${KMIRemote}/releases/latest/download"
+FileRepo="https://github.com/qimgss/QSTools-File"
+FileRefs="$FileRepo/raw/refs/main"
 Workdir=/data/QSTools
 Logdir=${Workdir}/logs
 Initdir=${Workdir}/Files
@@ -76,6 +78,21 @@ chmod -R 777 ${Workdir}
 
 Start(){
 Print_Text "${NowTime} -> 脚本开始运行" >> ${Logdir}/script.log
+
+if [ -d ${Initdir} ]; then
+    Print_Text ""
+    Update
+    clear
+    MainMenu
+elif [ -f ${Workdir}/updated ]; then
+    Init_Libraries
+    Update
+    MainMenu
+else
+    Init_Libraries
+    Update
+    MainMenu
+fi
 }
 
 ExitScript(){
@@ -264,7 +281,19 @@ else
     OutputLog "${NowTime} -> download magiskboot binary failed" "script.log"
     error_count=$((error_count + 1))
 fi
-cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/libblkops.so
+cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/magiskboot
+chmod -R 777 ${Filedir} >> /dev/null 2>&1
+
+current_task=$((current_task + 1))
+show_progress $current_task $total_tasks "下载jqlang"
+Download SkipSSL "${RawURL}/binary/jq" "/sdcard/jq" >> /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    OutputLog "${NowTime} -> download jq binary success" "script.log"
+else
+    OutputLog "${NowTime} -> download jq binary failed" "script.log"
+    error_count=$((error_count + 1))
+fi
+cp "/sdcard/jq" "${Workdir}/jq" 2>/dev/null && rm -rf /sdcard/jq
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 # 显示最终结果
@@ -279,6 +308,18 @@ if [ $error_count -eq 0 ]; then
 else
     printf "⚠ 初始化失败，%d 个文件拉取失败\n" "$error_count"
 fi
+}
+
+CheckKSU(){
+if lsmod | grep -q '^kernelsu'; then
+    KSU_MODE="LKM"
+elif [ -r /proc/config.gz ] && zcat /proc/config.gz | grep -q '^CONFIG_KSU=y$'; then
+    KSU_MODE="GKI"
+else
+    echo "KernelSU working mode unknow"
+    exit 1
+fi
+
 }
 
 ReadEnters(){
@@ -315,7 +356,8 @@ if [ "${Version}" -lt "${Remote_Version}" ]; then
             chmod 777 "./QSTools.sh"
             sleep 1
             clear
-            su -c "sh ./QSTools.sh"
+            touch ${Workdir}/updated
+            su -c "bash ./QSTools.sh"
         else
             Print_Text "错误：.更新新版本 QSTools 失败！"
         fi
@@ -370,26 +412,87 @@ su -c "sh ${Workdir}/Modules/StartInstall.sh"
 ConfigureZygiskNext
 }
 
+KSU_SA(){
+clear
+Print_Text "${CYAN}========================================${YELLOW}"
+
+cat << 'EOF'
+  _  ______  _   _   ____    _    
+ | |/ / ___|| | | | / ___|  / \   
+ | ' /\___ \| | | | \___ \ / _ \  
+ | . \ ___) | |_| |  ___) / ___ \ 
+ |_|\_\____/ \___/  |____/_/   \_\
+                                  
+EOF
+Print_Text "${CYAN}========================================${YELLOW}"
+Print_Text "1.KSU正式转dev版"
+Print_Text "2.修补KSU镜像"
+Print_Text "3.返回主界面"
+ReadEnters "" "请输入选项(1~3)：" "KSU_SA_Enters"
+case $KSU_SA_Enters in
+    1) KsuReleaseConvertDev ;;
+    2) PatchKSUImage "nol" ;;
+    3) MainMenu ;;
+    *) MainMenu ;;
+esac
+
+KsuReleaseConvertDev(){
+Print_Text "正在转dev..."
+cd /data/adb
+if pm list packages | cut -d':' -f2 | grep -qow com.weishu.kernelsu; then
+   if pm list packages | cut -d':' -f2 | grep -qow com.weishu.kernelsu.dev; then
+       DEV_APP=y
+   else
+       DEV_APP=n
+   fi
+fi
+
+echo "Downloading Dev Version KernelSU"
+if [ "$DEV_APP" = "n" ]; then
+    Print_Text "正在下载最新KernelSU Dev APK"
+    Download SkipSSL "$FileRefs/KernelSU.apk" "${Workdir}/"
+    pm install -r "${Workdir}/KernelSU.apk"
+fi
+DEV_LIB="$(pm path me.weishu.kernelsu.dev | cut -d':' -f2)/lib/arm64"
+cp $DEV_LIB ${Workdir}/
+CheckKSU
+if [ "KSU_MODE" = "LKM" ]; then
+    PatchKSUImage "CMD"
+elif [ "KSU_MODE" = "GKI" ]; then
+    blkops="${Workdir}/blkops"
+    $blkops -d boot boot.img
+    pm uninstall me.weishu.kernelsu
+    $blkops -d boot.img boot
+    rm -rf boot.img
+fi
+}
+
+
 KSU_Supported_Check(){
 kver=${CheckKernel}
 if [[ $(printf "%d%02d" $(echo "$kver" | cut -d'-' -f1 | tr '.' ' ')) -lt 5010 ]]; then
     echo "kernel < 5.10"
 fi
-
 }
 
 PatchKSUImage(){
 clear
+local CMD_SPACE=$1
 magiskboot=${Workdir}/magiskboot
 blkops=${Workdir}/blkops
-Print_Text "${YELLOW}找到的KMI文件：${CYAN}"
-find ${Filedir}/*.ko -type f -exec basename {} \;
-Print_Text "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
-Print_Text "输入方法：内核安卓版本+内核版本，如16-6.12"
-Print_Text "留空则退出脚本"
-ReadEnters "" "请输入需要的KMI：" "KMIEnters"
-cd ${Filedir}
-ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
+if [ "CMD_SPACE" != "CMD" ]; then
+    Print_Text "${YELLOW}找到的KMI文件：${CYAN}"
+    find ${Filedir}/*.ko -type f -exec basename {} \;
+    Print_Text "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
+    Print_Text "输入方法：内核安卓版本+内核版本，如16-6.12"
+    Print_Text "留空则退出脚本"
+    ReadEnters "" "请输入需要的KMI：" "KMIEnters"
+    cd ${Filedir}
+    ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
+else
+    ImageEnters=""
+    KMIEnters="${BuildAndroidVersion}-${CheckKernel}"
+fi
 isInitboot=$(${Workdir}/blkops -s -p init_boot)
 if [ -z $ImageEnters ]; then
     if $isInitboot | grep -qwi "Partition not found"; then
@@ -407,6 +510,9 @@ else
 fi
 
 }
+}
+
+
 
 MainMenu(){
 Print_Text "${CYAN}========================================${YELLOW}"
@@ -421,13 +527,13 @@ DeviceInfo
 Print_Text "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
 Print_Text "${YELLOW}
 1.隐藏Root环境        |
-2.修补KSU镜像         |
+2.KernelSU专区        |
 3.导出日志            |
 4.退出脚本            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
     1) HideRootEnvironment ;;
-    2) PatchKSUImage ;;
+    2) KSU_SA ;;
     3) ExportLog ;;
     4) ExitScript ;;
     *) return 1 ;;
@@ -436,16 +542,5 @@ esac
 
 CreateWorkdir
 Start
-
-if [ -d ${Initdir} ]; then
-    Print_Text ""
-    Update
-    clear
-    MainMenu
-else
-    Init_Libraries
-    Update
-    MainMenu
-fi
 ExitScript
 
