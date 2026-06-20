@@ -36,6 +36,11 @@ CYAN='\033[0;96m'
 PINK='\033[0;95m'
 NOCOLOR='\033[0m'
 
+# 命令变量
+magiskboot="${Workdir}/magiskboot"
+blkops="${Workdir}/blkops"
+ksud="/data/adb/ksud"
+
 #显示函数
 Print_Text(){ # 显示文字
 echo -e "$1"
@@ -462,7 +467,7 @@ elif [ "KSU_MODE" = "GKI" ]; then
     blkops="${Workdir}/blkops"
     $blkops -d boot boot.img
     pm uninstall me.weishu.kernelsu
-    $blkops -d boot.img boot
+    $blkops -w boot.img boot
     rm -rf boot.img
 fi
 }
@@ -478,8 +483,6 @@ fi
 PatchKSUImage(){
 clear
 local CMD_SPACE=$1
-magiskboot=${Workdir}/magiskboot
-blkops=${Workdir}/blkops
 if [ "CMD_SPACE" != "CMD" ]; then
     Print_Text "${YELLOW}找到的KMI文件：${CYAN}"
     find ${Filedir}/*.ko -type f -exec basename {} \;
@@ -497,22 +500,58 @@ isInitboot=$(${Workdir}/blkops -s -p init_boot)
 if [ -z $ImageEnters ]; then
     if $isInitboot | grep -qwi "Partition not found"; then
         ${Workdir}/blkops --dump "boot" "./Image.img"
-        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+        $ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
         $blkops --write ./Image.img boot
     else
         ${Workdir}/blkops --dump "init_boot" "./Image.img"
-        ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+        $ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
         $blkops --write ./Image.img init_boot
     fi
 else
     mv $ImageEnters ./Image.img
-    ./ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+    $ksud boot-patch -b ./Image.img -m ${KMIEnters}_ksu.ko --magiskboot $magiskboot
+    $blkops --write ./Image.img init_boot
 fi
 
 }
 }
 
+FlashArea(){
+FlashImage(){
+ReadEnters "" "请输入Image的路径：" "ImagePath"
+ReadEnters "" "请输入需要刷写的分区" "TargetPart"
+$blkops -w $ImagePath $TargetPart
+}
 
+FlashKernel(){
+ReadEnters "" "请输入内核镜像的路径：" "KernelPath"
+Print_Text "内核镜像路径：$KernelPath"
+$blkops -d boot boot.img
+$magiskboot unpack boot.img
+cp $KernelPath ./
+$magiskboot repack boot.img
+$blkops -w boot.img boot
+rm -rf ramdisk.cpio
+rm -rf kernel
+rm -rf boot.img
+rm -rf new-boot.img
+Print_Text "刷写完成."
+
+}
+
+clear
+Print_Text "${CYAN}========================================${YELLOW}"
+Print_Text "${YELLOW}1.刷写镜像
+2.刷写内核
+3.返回主菜单"
+ReadEnters "" "请输入选项(1~3)：" "FlashAreaInputs"
+case $FlashAreaInputs in
+    1) FlashImage ;;
+    2) FlashKernel ;;
+    3) MainMenu ;;
+esac
+
+}
 
 MainMenu(){
 Print_Text "${CYAN}========================================${YELLOW}"
@@ -526,17 +565,19 @@ Print_Text "${CYAN}========================================${NOCOLOR}"
 DeviceInfo
 Print_Text "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
 Print_Text "${YELLOW}
-1.隐藏Root环境        |
-2.KernelSU专区        |
-3.导出日志            |
-4.退出脚本            |"
+|1.隐藏Root环境        |
+|2.KernelSU专区        |
+|3.导出日志            |
+|4.刷写区             |
+|5.退出脚本            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
     1) HideRootEnvironment ;;
     2) KSU_SA ;;
     3) ExportLog ;;
-    4) ExitScript ;;
-    *) return 1 ;;
+    4) FlashArea ;;
+    5) ExitScript ;;
+    *) ExitScript ;;
 esac
 }
 
