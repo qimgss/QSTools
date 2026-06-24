@@ -1,0 +1,15 @@
+[package]
+name = "qslib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flate2 = { version = "1.0", features = ["zlib"] }
+lzzzz = "0.8"
+xz2 = "0.1"
+bzip2 = "0.4"
+thiserror = "1.0"
+memmap2 = "0.9"
+byteorder = "1.5"
+bitflags = "2.4"
+log = "0.4"
