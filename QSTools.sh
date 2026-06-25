@@ -22,6 +22,7 @@ CheckModel=$(getprop ro.product.model)
 CheckVersion=$(getprop ro.build.version.release)
 CheckKernel=$(cat /proc/version | awk -F '-' '{print $1}' | awk '{print $3}' | awk -F '.' '{print $1"."$2}')
 CheckSlot=$(getprop ro.boot.slot_suffix)
+CheckFactoryKernel=$(echo "$version" | awk -F'[.-]' '{print $4"-"$1"."$2}')
 KernelVersion=$(cat /proc/version)
 BuildAndroidVersion=$(echo "$KernelVersion" | grep -o 'android[0-9]\+' | grep -o '[0-9]\+' || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
 
@@ -111,18 +112,29 @@ exit >> /dev/null 2>&1
 
 #下载函数
 Download(){
-#标准的可输出日志的下载命令：
-#Download SkipSSL "下载链接" "下载目录" && OutputLog "${NowTime} -> 文件名或简称 success" "指定的日志文件命令.log" || OutputLog "${NowTime} -> 文件名或简称 failed" "指定的日志文件名称.log"
+#标准的下载命令：
+#Download SkipSSL LO "下载链接" "下载目录" "文件名称" "日志名称"
+# 或者
+#Download SkipSSL NLO "下载链接" "下载目录"
 
     local SkipSSL=$1
-    local URL=$2
-    local Output=$3
+    local LogOutput=$2
+    local URL=$3
+    local Output=$4
+    local FileName=$5
+    local LogName=$6
     local Functions=""
     if [ "$SkipSSL" = "SkipSSL" ]; then
         local Functions='-k'
     fi
-curl --progress-bar -L $Fucntions -o "$Output" "$URL"
-
+    if [ "$LogOutput" = "LO" ]; then
+        curl --progress-bar -L $Fucntions -o "$Output" "$URL" "${FileName} success" "${LogName}.log" || OutputLog "${NowTime} -> Download ${FileName} failed" "${LogName}.log"
+    elif [ "$LogOutput" = "NLO" ]; then
+        curl --progress-bar -L $Fucntions -o "$Output" "$URL"
+    elif [ -z $LogOutput]; then
+        Print_Text "Inputs参数错误"
+        ExitScript
+    fi
 }
 
 Init_Libraries(){
@@ -350,16 +362,14 @@ if [ -r /proc/config.gz ] && zcat /proc/config.gz | grep -q '^CONFIG_KSU=y$'; th
     RootType='KernelSU (GKI)'
 elif lsmod | grep -q '^kernelsu'; then
     RootType='KernelSU (LKM)'
-elif su -v | grep -q "APatch"; then
+elif echo "$SUCommand" | grep -q "APatch"; then
     RootType='APatch'
-elif su -v | grep -q "Magisk"; then
+elif echo "$SUCommand" | grep -q "Magisk"; then
     RootType='Magisk'
 elif echo "$SUCommand" | grep -qi "alpha"; then
     RootType='Magisk Alpha'
-elif echo "$SUCommand" | grep -qi "kitsune"; then
+elif echo "$SUCommand" | grep -qi "kitsune" || grep -qi "delta"; then
     RootType='Kitsune Mask'
-elif echo "$SUCommand" | grep -qi "delta"; then
-    RootType='Magisk Delta'
 fi
 
 RootVersion="$(su -V)"
@@ -439,18 +449,18 @@ fi
 HideRootEnvironment(){
 ADBdir="/data/adb"
 ConfigureZygiskNext(){
-Print_Text "2" >> $ADBdir/zygisksu/denylist_enforce   #||排除列表策略                  仅还原挂载|
-Print_Text "1" >> $ADBdir/zygisksu/memory_type      #|使用匿名内存                         开启|
-Print_Text "1" >> $ADBdir/zygisksu/linker               #|使用 Zygisk Next 链接器            开启|
-}
+Print_Text "2" >> $ADBdir/zygisksu/denylist_enforce   #|排除列表策略                    仅还原挂载|
+Print_Text "1" >> $ADBdir/zygisksu/memory_type        #|使用匿名内存                         开启|
+Print_Text "1" >> $ADBdir/zygisksu/linker             #|使用 Zygisk Next 链接器              开启|
+} 
 mkdir "${Workdir}/Modules"
-Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" && OutputLog "${NowTime} -> download StartInstall.sh success" "InstallModule.log" || OutputLog "${NowTime} -> download StartInstall.sh failed" "InstallModule.log"
-Download SkipSSL "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download ZygiskNext success" "InstallModule.log" || OutputLog "${NowTime} -> download ZygiskNext failed" "InstallModule.log"
-Download SkipSSL "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download LSPosed success" "InstallModule.log" || OutputLog "${NowTime} -> download LSPosed failed" "InstallModule.log"
+Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" "StartInstall.sh" "InstallModule.log"
+Download SkipSSL "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" "ZygiskNext" "InstallModule.log"
+Download SkipSSL "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" "LSPosed" "InstallModule.log"
 if zcat /proc/config.gz | grep -wi CONFIG_KSU_SUSFS; then
-    Download SkipSSL "https://github.com/sidex15/susfs4ksu-module/releases/latest/download/ksu_module_susfs_1.5.2+.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download SUSFS success" "InstallModule.log" || OutputLog "${NowTime} -> download SUSFS failed" "InstallModule.log"
+    Download SkipSSL "https://github.com/sidex15/susfs4ksu-module/releases/latest/download/ksu_module_susfs_1.5.2+.zip" "${Workdir}/Modules/Modules/" "SUSFS" "InstallModule.log"
 else
-    Download SkipSSL "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" && OutputLog "${NowTime} -> download TrickyStore success" "InstallModule.log" || OutputLog "${NowTime} -> download TrickyStore failed" "InstallModule.log"
+    Download SkipSSL "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" "TrickyStore" "InstallModule.log"
 fi
 su -c "sh ${Workdir}/Modules/StartInstall.sh"
 ConfigureZygiskNext
@@ -535,7 +545,7 @@ else
     ImageEnters=""
     KMIEnters="${BuildAndroidVersion}-${CheckKernel}"
 fi
-isInitboot=$(${Workdir}/blkops -s -p init_boot)
+isInitboot=$(${Workdir}/blkops -s init_boot -p)
 if [ -z $ImageEnters ]; then
     if $isInitboot | grep -qwi "Partition not found"; then
         ${Workdir}/blkops --dump "boot" "./Image.img"
@@ -592,6 +602,71 @@ esac
 
 }
 
+ConvertRoot(){
+clear
+Github="https://github.comm"
+Print_Text "${CYAN}========================================${YELLOW}"
+Print_Text "1.Magisk
+2.APatch
+3.KernelSU"
+ReadEnters "" "请输入当前的Root实现方式，当前为${RootType}(留空自动选择${RootType})：" "ConvertRootInputs"
+if [ -z $ConvertRootInputs ]; then
+    CurrentRoot="${RootType}"
+fi
+Print_Text "${CYAN}========================================${YELLOW}"
+Print "1.Magisk
+2.APatch 
+3.FolkPatch
+4.KernelSU
+5.KernelSU-Next
+6.SukiSU-Ultra"
+# 7.ReSukiSU
+ReadEnters "" "请输入需要转换的Root实现方式：" "ConvertTargetRootInputs"
+[ ! -d ${Workdir}/ConvertSpaces ] && mkdir ${Workdir}/ConvertSpaces && ConvertSpaces="${Workdir}/ConvertSpaces"
+isInitboot=$($blkops -s init_boot -p)
+if $isInitboot | grep -qwi "Partition not found"; then
+    $blkops -d boot ${ConvertSpaces}/Image.img
+    TargetPartition="boot"
+else
+    $blkops -d init_boot ${ConvertSpaces}/Image.img
+    TargetPartition="init_boot"
+fi
+[ ! -z ${ConvertSpaces}/target/ ] && mkdir ${ConvertSpaces}/target
+case $ConvertTargetRootInputs in
+    1)
+        Download SkipSSL LO "$Github/topjohnwu/Magisk/releases/latest/download/app-debug.apk" "${ConvertSpaces}/magisk.apk" "Magisk.apk" "ConvertRoot"
+        unzip ${ConvertSpaces}/magisk.apk ${ConvertSpaces}/target
+        ${ConvertSpaces}/target/assets/boot_patch.sh ${ConvertSpaces}/Image.img
+        $blkops -w new-boot.img $TargetPartition
+    ;;
+    2|3)
+        ReadEnters "" "请输入超级密钥：" "SuperKey"
+        ReadEnters "" "需要将超级密钥保存在本机吗？(Y/n)" "SaveSuperKeyInLocalHost"
+        case $SaveSuperKeyInLocalHost in
+            Y|y) Print_Text "${SuperKey}" > ${Workdir}SuperKey ;;
+            N|n) Print_Text "你选择了不保存在本机" ;;
+        esac
+        Download SkipSSL LO "$Github/bmax121/KernelPatch/releases/latest/download/kptools-android" "${ConvertSpaces}/target/kptools" "KPTools" "ConvertRoot"
+        Download SkipSSL LO "$Github/bmax121/KernelPatch/releases/latest/download/kpimg-android" "${ConvertSpaces}/target/kpimg" "KPImg" "ConvertRoot"
+        $magiskboot unpack ${ConvertSpaces}/Image.img
+        ${ConvertSpaces}/target/kptools --patch --image "${ConvertSpaces}/kernel" --kpimg "${ConvertSpaces}/target/kpimg" --root-skey "$SuperKey"
+    ;;
+    4|5|6)
+        case ConvertTargetRootInputs in
+            4) KernelSU_SC="$Github/tiann/KernelSU" ;;
+            5) KernelSU_SC="$Github/KernelSU-Next/KernelSU-Next" ;;
+            6) KernelSU_SC="$Github/SukiSU-Ultra/SukiSU-Ultra" ;;
+            # 7) KernelSU_SC="$Github/ReSukiSU/ReSukiSU" ;;
+        esac
+        Download SkipSSL LO "${KernelSU_SC}/releases/latest/android${CheckFactoryKernel}_kernelsu.ko" "${ConvertSpaces}/target/kernelsu.ko" "KernelSU LKM Module" "ConvertRoot"
+        $Filedir/ksud boot-patch --boot "${ConvertSpaces}/Image.img" --magiskboot "${magiskboot}" --module "${ConvertSpaces}/target/kernelsu.ko"
+        # not end
+    ;;
+esac
+
+
+}
+
 MainMenu(){
 Print_Text "${CYAN}========================================${YELLOW}"
 MDT_Print_Text '   ___  ____ _____           _     
@@ -606,18 +681,19 @@ CheckTerminal && Print_Text "当前终端：${TerminalType}"
 CheckRoot && Print_Text "Root实现方式：${RootEnv}"
 Print_Text "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
 Print_Text "${YELLOW}
-| 1.隐藏Root环境        |
+| 1.隐藏Root环境        | 6.退出脚本
 | 2.KernelSU专区        |
 | 3.导出日志            |
 | 4.刷写区             |
-| 5.退出脚本            |"
+| 5.转换Root            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
     1) HideRootEnvironment ;;
     2) KSU_SA ;;
     3) ExportLog ;;
     4) FlashArea ;;
-    5) ExitScript ;;
+    5) ConvertRoot ;;
+    6) ExitScript ;;
     *) ExitScript ;;
 esac
 }
