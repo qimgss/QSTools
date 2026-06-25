@@ -62,6 +62,8 @@ if [ -z ${ExportLogPath} ]; then
     Print_Text "未输入报告导出地址，默认导出至：${Logdir}"
     ExportLogPath=${Logdir}
 fi
+CheckTerminal
+CheckRoot
 echo "Model: ${CheckModel}
 Manufacturer: ${CheckManufacturer}
 Kernel: $(cat /proc/version | awk '{print $3}')
@@ -70,7 +72,9 @@ SDK: $(getprop ro.build.version.sdk)
 Architecture: $(uname -m)
 CPU: $(getprop ro.hardware)-$(getprop ro.board.platform)
 Script path: $0
-Script version: ${Version}" >>${Logdir}/baseinfo.log
+Script version: ${Version}
+Root Environment: ${RootEnv}
+Terminal: ${TerminalType}" >>${Logdir}/baseinfo.log
 zcat /proc/config.gz >> ${Logdir}/deconfig
 cp -af $0 ${Logdir}/script.sh
 zip -r ${ExportLogPath}/Report_${NowTime_NT}.zip ${Logdir}/
@@ -324,7 +328,42 @@ else
     echo "KernelSU working mode unknow"
     exit 1
 fi
+}
 
+CheckTerminal(){
+if command -v pkg >/dev/null 2>&1; then
+    TerminalType="Termux"
+    SUCommand="$(su -v)"
+elif command -v su2 >/dev/null 2>&1 && command -v su >/dev/null 2>&1; then
+    TerminalType="MT-Extra"
+    SUCommand="$(su2 -v)"
+elif command -v su >/dev/null 2>&1; then
+    TerminalType="System"
+    SUCommand="$(su -v)"
+else
+    unset Terminal
+fi
+}
+
+CheckRoot(){
+if [ -r /proc/config.gz ] && zcat /proc/config.gz | grep -q '^CONFIG_KSU=y$'; then
+    RootType='KernelSU (GKI)'
+elif lsmod | grep -q '^kernelsu'; then
+    RootType='KernelSU (LKM)'
+elif su -v | grep -q "APatch"; then
+    RootType='APatch'
+elif su -v | grep -q "Magisk"; then
+    RootType='Magisk'
+elif echo "$SUCommand" | grep -qi "alpha"; then
+    RootType='Magisk Alpha'
+elif echo "$SUCommand" | grep -qi "kitsune"; then
+    RootType='Kitsune Mask'
+elif echo "$SUCommand" | grep -qi "delta"; then
+    RootType='Magisk Delta'
+fi
+
+RootVersion="$(su -V)"
+RootEnv="${RootType}-${RootVersion}"
 }
 
 ReadEnters(){
@@ -563,13 +602,15 @@ MDT_Print_Text '   ___  ____ _____           _
                                     '
 Print_Text "${CYAN}========================================${NOCOLOR}"
 DeviceInfo
+CheckTerminal && Print_Text "当前终端：${TerminalType}"
+CheckRoot && Print_Text "Root实现方式：${RootEnv}"
 Print_Text "如果脚本出现问题，请前往https://github.com/qimgss/QSTools/issues报告问题"
 Print_Text "${YELLOW}
-|1.隐藏Root环境        |
-|2.KernelSU专区        |
-|3.导出日志            |
-|4.刷写区             |
-|5.退出脚本            |"
+| 1.隐藏Root环境        |
+| 2.KernelSU专区        |
+| 3.导出日志            |
+| 4.刷写区             |
+| 5.退出脚本            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
     1) HideRootEnvironment ;;
