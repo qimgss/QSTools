@@ -631,7 +631,40 @@ else
     $blkops -d init_boot ${ConvertSpaces}/Image.img
     TargetPartition="init_boot"
 fi
-[ ! -z ${ConvertSpaces}/target/ ] && mkdir ${ConvertSpaces}/target
+[ ! -d ${ConvertSpaces}/current ] && mkdir ${ConvertSpaces}/current
+[ ! -d ${ConvertSpaces}/target ] && mkdir ${ConvertSpaces}/target
+
+case $ConvertRootInputs in
+    1)
+        Download SkipSSL LO "$Github/topjohnwu/Magisk/releases/latest/download/app-debug.apk" "${ConvertSpaces}/magisk.apk" "Magisk.apk" "ConvertRoot"
+        unzip ${ConvertSpaces}/magisk.apk ${ConvertSpaces}/target
+        ${ConvertSpaces}/target/assets/uninstaller.sh
+    ;;
+    2)
+        Download SkipSSL LO "$Github/bmax121/KernelPatch/releases/latest/download/kptools-android" "${ConvertSpaces}/target/kptools" "KPTools" "ConvertRoot"
+        $magiskboot unpack ${ConvertSpaces}/Image.img
+        mv ${ConvertSpaces}/kernel ${ConvertSpaces}/kernel.patched
+        ${ConvertSpaces}/target/kptools --unpatch --image "${ConvertSpaces}/kernel.patched" --out ${ConvertSpaces}/kernel
+        $magiskboot repack ${ConvertSpaces}/Image.img
+        mv ${ConvertSpaces}/new-boot.img ${ConvertSpaces}/kernelpatch.img
+        $blkops -w ${ConvertSpaces}/kernelpatch.img $TargetPartition 
+    ;;
+    3)
+        ReadEnters "" "你需要保留模块吗？(Y/n)" "KeepModules"
+        case $KeepModules in
+            1)
+                $ksud boot-restore --boot ${ConvertSpaces}/Image.img --magiskboot $magiskboot --out ${ConvertSpaces}/ksu.img
+                $blkops -w ${ConvertSpaces}/ksu.img $TargetPartition
+            ;;
+            2)
+                $ksud boot-restore --boot ${ConvertSpaces}/Image.img --magiskboot $magiskboot --out ${ConvertSpaces}/ksu.img
+                rm -rf /data/adb && mkdir /data/adb
+                $blkops -w ${ConvertSpaces}/ksu.img $TargetPartition
+            ;;
+        esac
+    ;;
+esac
+
 case $ConvertTargetRootInputs in
     1)
         Download SkipSSL LO "$Github/topjohnwu/Magisk/releases/latest/download/app-debug.apk" "${ConvertSpaces}/magisk.apk" "Magisk.apk" "ConvertRoot"
@@ -646,10 +679,15 @@ case $ConvertTargetRootInputs in
             Y|y) Print_Text "${SuperKey}" > ${Workdir}SuperKey ;;
             N|n) Print_Text "你选择了不保存在本机" ;;
         esac
+
         Download SkipSSL LO "$Github/bmax121/KernelPatch/releases/latest/download/kptools-android" "${ConvertSpaces}/target/kptools" "KPTools" "ConvertRoot"
         Download SkipSSL LO "$Github/bmax121/KernelPatch/releases/latest/download/kpimg-android" "${ConvertSpaces}/target/kpimg" "KPImg" "ConvertRoot"
         $magiskboot unpack ${ConvertSpaces}/Image.img
-        ${ConvertSpaces}/target/kptools --patch --image "${ConvertSpaces}/kernel" --kpimg "${ConvertSpaces}/target/kpimg" --root-skey "$SuperKey"
+        mv ${ConvertSpaces}/kernel ${ConvertSpaces}/kernel.original
+        ${ConvertSpaces}/target/kptools --patch --image "${ConvertSpaces}/kernel.original" --kpimg "${ConvertSpaces}/target/kpimg" --root-skey "$SuperKey" --out ${ConvertSpaces}/kernel
+        $magiskboot repack ${ConvertSpaces}/Image.img
+        mv ${ConvertSpaces}/new-boot.img ${ConvertSpaces}/kernelpatch.img
+        $blkops -w ${ConvertSpaces}/kernelpatch.img $TargetPartition
     ;;
     4|5|6)
         case ConvertTargetRootInputs in
@@ -659,11 +697,11 @@ case $ConvertTargetRootInputs in
             # 7) KernelSU_SC="$Github/ReSukiSU/ReSukiSU" ;;
         esac
         Download SkipSSL LO "${KernelSU_SC}/releases/latest/android${CheckFactoryKernel}_kernelsu.ko" "${ConvertSpaces}/target/kernelsu.ko" "KernelSU LKM Module" "ConvertRoot"
-        $Filedir/ksud boot-patch --boot "${ConvertSpaces}/Image.img" --magiskboot "${magiskboot}" --module "${ConvertSpaces}/target/kernelsu.ko"
-        # not end
+        $ksud boot-patch --boot "${ConvertSpaces}/Image.img" --magiskboot "${magiskboot}" --module "${ConvertSpaces}/target/kernelsu.ko" --out-name ${ConvertSpaces}/target/ksu.img
+        $blkops -w ${ConvertSpaces}/ksu.img $TargetPartition
     ;;
 esac
-
+rm -rf $ConvertSpaces && Print_Text "转换空间清理完成"
 
 }
 
