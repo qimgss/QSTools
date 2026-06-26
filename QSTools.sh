@@ -95,10 +95,12 @@ if [ -d ${Initdir} ]; then
     clear
     MainMenu
 elif [ -f ${Workdir}/updated ]; then
+    CreateWorkdir
     Init_Libraries
     Update
     MainMenu
 else
+    CreateWorkdir
     Init_Libraries
     Update
     MainMenu
@@ -735,8 +737,6 @@ case $MainInputs in
     *) ExitScript ;;
 esac
 }
-
-CreateWorkdir
 Start
 ExitScript
 
