@@ -198,83 +198,35 @@ error_count=0
 mkdir ${Filedir} >> /dev/null 2>&1
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-12-5.10"
-Download SkipSSL "${KMI}/android12-5.10_kernelsu.ko" "${Filedir}/12-5.10_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 12-5.10 success" "script.log"
-else
-    OutputLog "${NowTime} -> download 12-5.10 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android12-5.10_kernelsu.ko" "${Filedir}/12-5.10_ksu.ko" "Android12-5.10 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.10"
-Download SkipSSL "${KMI}/android13-5.10_kernelsu.ko" "${Filedir}/13-5.10_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 13-5.10 success" "script.log"
-else
-    OutputLog "${NowTime} -> download 13-5.10 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android13-5.10_kernelsu.ko" "${Filedir}/13-5.10_ksu.ko" "Android13-5.10 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-13-5.15"
-Download SkipSSL "${KMI}/android13-5.15_kernelsu.ko" "${Filedir}/13-5.15_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 13-5.15 success" "script.log"
-else
-    OutputLog "${NowTime} -> download13-5.15 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android13-5.15_kernelsu.ko" "${Filedir}/13-5.15_ksu.ko" "Android13-5.15 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-5.15"
-Download SkipSSL "${KMI}/android14-5.15_kernelsu.ko" "${Filedir}/14-5.15_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 14-5.15 success" "script.log"
-else
-    OutputLog "${NowTime} -> download 14-5.15 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android14-5.15_kernelsu.ko" "${Filedir}/14-5.15_ksu.ko" "Android14-5.15 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-14-6.1"
-Download SkipSSL "${KMI}/android14-6.1_kernelsu.ko" "${Filedir}/14-6.1_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 14-6.1 success" "script.log"
-else
-    OutputLog "${NowTime} -> download 14-6.1 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android14-6.1_kernelsu.ko" "${Filedir}/14-6.1_ksu.ko" "Android14-6.1 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-15-6.6"
-Download SkipSSL "${KMI}/android15-6.6_kernelsu.ko" "${Filedir}/15-6.6_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 15-6.6 success" "script.log"
-else
-    OutputLog "${NowTime} -> download15-6.6 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android15-6.6_kernelsu.ko" "${Filedir}/15-6.6_ksu.ko" "Android15-6.6 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KMI-16-6.12"
-Download SkipSSL "${KMI}/android16-6.12_kernelsu.ko" "${Filedir}/16-6.12_ksu.ko" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download 16-6.12 success" "script.log"
-else
-    OutputLog "${NowTime} -> download 16-6.12 failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/android16-6.12_kernelsu.ko" "${Filedir}/16-6.12_ksu.ko" "Android16-6.12 KernelModule" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KernelSU"
-Download SkipSSL "${KMI}/KernelSU_v3.2.4_32457-release.apk" "/sdcard/ksu.apk" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download ksu manager success" "script.log"
-else
-    OutputLog "${NowTime} -> download ksu manager failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${KMI}/KernelSU_v3.2.4_32457-release.apk" "/sdcard/ksu.apk" "KernelSU APK" "Initation"
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "移动并解压APK"
@@ -285,37 +237,21 @@ chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载blkops"
-Download SkipSSL "${RawURL}/binary/blkops" "/sdcard/libblkops.so" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download blkops binary success" "script.log"
-else
-    OutputLog "${NowTime} -> download blkops binary failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${RawURL}/binary/blkops" "/sdcard/libblkops.so" "BlockOperations" "Initation"
+
 cp "/sdcard/libblkops.so" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops.so
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载magiskboot"
-Download SkipSSL "${RawURL}/binary/magiskboot" "/sdcard/magiskboot" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download magiskboot binary success" "script.log"
-else
-    OutputLog "${NowTime} -> download magiskboot binary failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${RawURL}/binary/magiskboot" "/sdcard/magiskboot" "MagiskBoot" "Initation"
+
 cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/magiskboot
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载jqlang"
-Download SkipSSL "${RawURL}/binary/jq" "/sdcard/jq" >> /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    OutputLog "${NowTime} -> download jq binary success" "script.log"
-else
-    OutputLog "${NowTime} -> download jq binary failed" "script.log"
-    error_count=$((error_count + 1))
-fi
+Download SkipSSL LO "${RawURL}/binary/jq" "/sdcard/jq" "JQLang" "Initiation"
 cp "/sdcard/jq" "${Workdir}/jq" 2>/dev/null && rm -rf /sdcard/jq
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
@@ -406,7 +342,7 @@ if [ "${Version}" -lt "${Remote_Version}" ]; then
 
     case $UpdateInput in
         Y|y)
-        Download "SkipSSL" "${RawURL}/main/QSTools.sh" ./QSTools.sh
+        Download SkipSSL LO "${RawURL}/main/QSTools.sh" ./QSTools.sh "MainScript" "Update"
         Print_Text "${ORANGE}更新完成${NC}"
         if [ $? -eq 0 ]; then
             chmod 777 "./QSTools.sh"
@@ -456,13 +392,13 @@ Print_Text "1" >> $ADBdir/zygisksu/memory_type        #|使用匿名内存      
 Print_Text "1" >> $ADBdir/zygisksu/linker             #|使用 Zygisk Next 链接器              开启|
 } 
 mkdir "${Workdir}/Modules"
-Download SkipSSL "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" "StartInstall.sh" "InstallModule.log"
-Download SkipSSL "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" "ZygiskNext" "InstallModule.log"
-Download SkipSSL "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" "LSPosed" "InstallModule.log"
+Download SkipSSL LO "${RawURL}/Framework/StartInstall.sh" "${Workdir}/Modules/" "StartInstall.sh" "InstallModule.log"
+Download SkipSSL LO "${RawURL}/Framework/Modules/ZygiskNext.zip" "${Workdir}/Modules/Modules/" "ZygiskNext" "InstallModule.log"
+Download SkipSSL LO "${RawURL}/Framework/Modules/LSPosed.zip" "${Workdir}/Modules/Modules/" "LSPosed" "InstallModule.log"
 if zcat /proc/config.gz | grep -wi CONFIG_KSU_SUSFS; then
-    Download SkipSSL "https://github.com/sidex15/susfs4ksu-module/releases/latest/download/ksu_module_susfs_1.5.2+.zip" "${Workdir}/Modules/Modules/" "SUSFS" "InstallModule.log"
+    Download SkipSSL LO "https://github.com/sidex15/susfs4ksu-module/releases/latest/download/ksu_module_susfs_1.5.2+.zip" "${Workdir}/Modules/Modules/" "SUSFS" "InstallModule.log"
 else
-    Download SkipSSL "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" "TrickyStore" "InstallModule.log"
+    Download SkipSSL LO "${RawURL}/Framework/Modules/TrickyStore.zip" "${Workdir}/Modules/Modules/" "TrickyStore" "InstallModule.log"
 fi
 su -c "sh ${Workdir}/Modules/StartInstall.sh"
 ConfigureZygiskNext
@@ -506,7 +442,7 @@ fi
 echo "Downloading Dev Version KernelSU"
 if [ "$DEV_APP" = "n" ]; then
     Print_Text "正在下载最新KernelSU Dev APK"
-    Download SkipSSL "$FileRefs/KernelSU.apk" "${Workdir}/"
+    Download SkipSSL LO "$FileRefs/KernelSU.apk" "${Workdir}/"
     pm install -r "${Workdir}/KernelSU.apk"
 fi
 DEV_LIB="$(pm path me.weishu.kernelsu.dev | cut -d':' -f2)/lib/arm64"
