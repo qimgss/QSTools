@@ -12,7 +12,7 @@ Workdir=/data/QSTools
 Logdir=${Workdir}/logs
 Initdir=${Workdir}/Files
 Filedir=${Initdir}
-Version="20260509"
+Version="20260626"
 
 #命令变量
 NowTime=$(date "+%Y年%m月%d日%H时%M分%S秒%3N毫秒")
@@ -22,9 +22,9 @@ CheckModel=$(getprop ro.product.model)
 CheckVersion=$(getprop ro.build.version.release)
 CheckKernel=$(cat /proc/version | awk -F '-' '{print $1}' | awk '{print $3}' | awk -F '.' '{print $1"."$2}')
 CheckSlot=$(getprop ro.boot.slot_suffix)
-CheckFactoryKernel=$(echo "$version" | awk -F'[.-]' '{print $4"-"$1"."$2}')
 KernelVersion=$(cat /proc/version)
-BuildAndroidVersion=$(echo "$KernelVersion" | grep -o 'android[0-9]\+' | grep -o '[0-9]\+' || echo "未在内核版本中检测到安卓版本，你是不是忘记禁用SuSFS/UnameSpoofer了")
+BuildKernelVersion=$(uname -r | sed -E 's/^([0-9]+\.[0-9]+)\.[0-9]+-android([0-9]+).*/\2-\1/')
+BuildAndroidVersion=$(uname -r | sed -n 's/.*android\([0-9]\+\).*/\1/p')
 
 #颜色变量
 RED='\033[0;31m'
@@ -367,7 +367,7 @@ fi
 DeviceInfo(){
 Print_Text "${PINK}品牌：${ORANGE}${CheckManufacturer}${NOCOLOR}
 ${PINK}机型：${YELLOW}${CheckModel}${NOCOLOR}
-${PINK}内核版本：${CYAN}${CheckKernel}${NOCOLOR}
+${PINK}内核版本：${CYAN}${CheckKernel}-Android${BuildAndroidVersion}${NOCOLOR}
 ${PINK}安卓版本：${GREEN}${CheckVersion}${NOCOLOR}"
 }
 
@@ -473,7 +473,7 @@ local CMD_SPACE=$1
 if [ "CMD_SPACE" != "CMD" ]; then
     Print_Text "${YELLOW}找到的KMI文件：${CYAN}"
     find ${Filedir}/*.ko -type f -exec basename {} \;
-    Print_Text "${YELLOW}根据本机内核版本，建议你使用：${BuildAndroidVersion}-${CheckKernel}"
+    Print_Text "${YELLOW}根据本机内核版本，建议你使用：${BuildKernelVersion}-${CheckKernel}"
     Print_Text "输入方法：内核安卓版本+内核版本，如16-6.12"
     Print_Text "留空则退出脚本"
     ReadEnters "" "请输入需要的KMI：" "KMIEnters"
@@ -481,7 +481,7 @@ if [ "CMD_SPACE" != "CMD" ]; then
     ReadEnters "" "请输入boot/init_boot的地址(留空自动提取)：" "ImageEnters"
 else
     ImageEnters=""
-    KMIEnters="${BuildAndroidVersion}-${CheckKernel}"
+    KMIEnters="${BuildKernelVersion}-${CheckKernel}"
 fi
 isInitboot=$(${Workdir}/blkops -s init_boot -p)
 if [ -z $ImageEnters ]; then
@@ -634,7 +634,7 @@ case $ConvertTargetRootInputs in
             6) KernelSU_SC="$Github/SukiSU-Ultra/SukiSU-Ultra" ;;
             # 7) KernelSU_SC="$Github/ReSukiSU/ReSukiSU" ;;
         esac
-        Download SkipSSL LO "${KernelSU_SC}/releases/latest/android${CheckFactoryKernel}_kernelsu.ko" "${ConvertSpaces}/target/kernelsu.ko" "KernelSU LKM Module" "ConvertRoot"
+        Download SkipSSL LO "${KernelSU_SC}/releases/latest/android${BuildKernelVersion}_kernelsu.ko" "${ConvertSpaces}/target/kernelsu.ko" "KernelSU LKM Module" "ConvertRoot"
         $ksud boot-patch --boot "${ConvertSpaces}/Image.img" --magiskboot "${magiskboot}" --module "${ConvertSpaces}/target/kernelsu.ko" --out-name ${ConvertSpaces}/target/ksu.img
         $blkops -w ${ConvertSpaces}/ksu.img $TargetPartition
     ;;
@@ -660,7 +660,7 @@ Print_Text "${YELLOW}
 | 1.隐藏Root环境        | 6.退出脚本
 | 2.KernelSU专区        |
 | 3.导出日志            |
-| 4.刷写区             |
+| 4.刷写区              |
 | 5.转换Root            |"
 ReadEnters "" "请输入选项(1~5)：" "MainInputs"
 case $MainInputs in
