@@ -190,7 +190,7 @@ printf "\n"
 printf "\033[3;1H"
 save_cursor
 
-total_tasks=13
+total_tasks=10
 current_task=0
 error_count=0
 
@@ -227,9 +227,6 @@ Download SkipSSL LO "${KMI}/android16-6.12_kernelsu.ko" "${Filedir}/16-6.12_ksu.
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "KernelSU"
 Download SkipSSL LO "${KMI}/KernelSU_v3.2.4_32457-release.apk" "/sdcard/ksu.apk" "KernelSU APK" "Initation"
-
-current_task=$((current_task + 1))
-show_progress $current_task $total_tasks "移动并解压APK"
 cp "/sdcard/ksu.apk" "${Filedir}/" 2>/dev/null
 unzip -j "${Filedir}/ksu.apk" "lib/arm64-v8a/libksud.so" -d ${Filedir}/ >> /dev/null 2>&1 && mv ${Filedir}/libksud.so ${Filedir}/ksud 2>/dev/null
 rm -rf ${Filedir}/ksu.apk 2>/dev/null
@@ -238,7 +235,6 @@ chmod -R 777 ${Filedir} >> /dev/null 2>&1
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载blkops"
 Download SkipSSL LO "${RawURL}/binary/blkops" "/sdcard/blkops" "BlockOperations" "Initation"
-
 cp "/sdcard/libblkops" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
@@ -246,12 +242,6 @@ current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载magiskboot"
 Download SkipSSL LO "${RawURL}/binary/magiskboot" "/sdcard/magiskboot" "MagiskBoot" "Initation"
 cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/magiskboot
-chmod -R 777 ${Filedir} >> /dev/null 2>&1
-
-current_task=$((current + 1))
-show_progress $current_task $total_tasks "下载qsenc"
-Download SkipSSL LO "${RawURL}/binary/qsenc" "/sdcard/qsenc" "AES-256-GCM-Tool" "Initation"
-cp "/sdcard/qsenc" "${Workdir}/qsenc" 2>/dev/null && rm -rf /sdcard/qsenc
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 # 显示最终结果
