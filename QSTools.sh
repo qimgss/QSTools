@@ -76,9 +76,9 @@ Script path: $0
 Script version: ${Version}
 Root Environment: ${RootEnv}
 Terminal: ${TerminalType}" >>${Logdir}/baseinfo.log
-zcat /proc/config.gz >> ${Logdir}/deconfig
+zcat /proc/config.gz >> ${Logdir}/defconfig
 cp -af $0 ${Logdir}/script.sh
-zip -r ${ExportLogPath}/Report_${NowTime_NT}.zip ${Logdir}/
+tar -czvf ${ExportLogPath}/Report_${NowTime_NT}.tar.gz -C ${Logdir}/ * 
 }
 
 CreateWorkdir(){
@@ -190,7 +190,7 @@ printf "\n"
 printf "\033[3;1H"
 save_cursor
 
-total_tasks=10
+total_tasks=13
 current_task=0
 error_count=0
 
@@ -237,22 +237,21 @@ chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载blkops"
-Download SkipSSL LO "${RawURL}/binary/blkops" "/sdcard/libblkops.so" "BlockOperations" "Initation"
+Download SkipSSL LO "${RawURL}/binary/blkops" "/sdcard/blkops" "BlockOperations" "Initation"
 
-cp "/sdcard/libblkops.so" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops.so
+cp "/sdcard/libblkops" "${Workdir}/blkops" 2>/dev/null && rm -rf /sdcard/libblkops
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 current_task=$((current_task + 1))
 show_progress $current_task $total_tasks "下载magiskboot"
 Download SkipSSL LO "${RawURL}/binary/magiskboot" "/sdcard/magiskboot" "MagiskBoot" "Initation"
-
 cp "/sdcard/magiskboot" "${Workdir}/magiskboot" 2>/dev/null && rm -rf /sdcard/magiskboot
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
-current_task=$((current_task + 1))
-show_progress $current_task $total_tasks "下载jqlang"
-Download SkipSSL LO "${RawURL}/binary/jq" "/sdcard/jq" "JQLang" "Initiation"
-cp "/sdcard/jq" "${Workdir}/jq" 2>/dev/null && rm -rf /sdcard/jq
+current_task=$((current + 1))
+show_progress $current_task $total_tasks "下载qsenc"
+Download SkipSSL LO "${RawURL}/binary/qsenc" "/sdcard/qsenc" "AES-256-GCM-Tool" "Initation"
+cp "/sdcard/qsenc" "${Workdir}/qsenc" 2>/dev/null && rm -rf /sdcard/qsenc
 chmod -R 777 ${Filedir} >> /dev/null 2>&1
 
 # 显示最终结果
